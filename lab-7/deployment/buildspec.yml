@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Install kube-score ...
+      - curl -s https://api.github.com/repos/zegl/kube-score/releases/latest  | grep "browser_download_url.*linux_amd64.tar.gz"  |  cut -d '"' -f 4  |  wget -qi -
+      - ARCHIVE=$(ls | grep kube-score) 
+      - tar -xzvf $ARCHIVE
+      - chmod +x kube-score && mv kube-score /usr/bin
+  build:
+    commands:
+      - echo Check manifest syntax ...
+#      - kube-score score *.yaml  --exit-one-on-warning
+  post_build:
+    commands:
+      - echo Build started on `date`
+      - RUN=$(aws deploy push --application-name $APPLICATION_NAME --s3-location s3://${S3_NAME}/${APPLICATION_NAME}.zip --ignore-hidden-files --region us-east-1 | sed -n 2p  | sed 's/<//g' | sed 's/>//g' | sed 's/ deployment-group-name/ alpinehelloworld/g' | sed 's/ deployment-config-name/ CodeDeployDefault.AllAtOnce/g' | sed 's/ description/ deployment/g')
+      - $RUN 

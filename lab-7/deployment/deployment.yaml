@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpinehelloworld
+  namespace: default
+  labels:
+    app: alpinehelloworld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpinehelloworld
+  template:
+    metadata:
+      labels:
+        app: alpinehelloworld
+    spec:
+      containers:
+      - name: alpinehelloworld
+        image: 312601499315.dkr.ecr.us-east-1.amazonaws.com/alpinehelloworld:1.0
+        ports:
+          - containerPort: 5000
+        env:
+          - name: PORT
+            value: "5000"
+      imagePullSecrets:
+      - name: alpinehelloworld-ecr 

@@ -1,0 +1,19 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /root/deployment
+hooks:
+  BeforeInstall:
+    - location: scripts/deploy_release_info.sh
+      timeout: 300
+      runas: root
+
+  ApplicationStart:
+    - location: scripts/deploy_application.sh
+      timeout: 300
+      runas: root
+
+  ValidateService:
+    - location: scripts/validate_application.sh
+      timeout: 300
