@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpinehelloworld
+  namespace: default
+  labels:
+    app: alpinehelloworld
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpinehelloworld
+  template:
+    metadata:
+      labels:
+        app: alpinehelloworld
+    spec:
+      containers:
+      - name: alpinehelloworld
+        image: eazytrainingfr/alpinehelloworld
+        ports:
+          - containerPort: 5000
+        env:
+          - name: PORT
+            value: "5000"
