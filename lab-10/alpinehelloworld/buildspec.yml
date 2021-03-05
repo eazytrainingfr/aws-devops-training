@@ -1,0 +1,58 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...  
+      - IMAGE_TAG=$(grep -r "newTag" kustomization.yaml | cut -f2 -d'"')        
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG . 
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG      
+      - docker run --name $IMAGE_REPO_NAME -d -p 80:5000 -e PORT=5000 $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - |
+        if $(curl http://localhost | grep -q "Hello world!");
+        then
+          echo image seems to be working normally
+        else
+          echo image is not working as expected
+          echo we delete the image to ensure that the image will not be pushed
+          docker rmi $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+        fi
+      - docker rm -f $IMAGE_REPO_NAME
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - IMAGE_TAG=$(grep -r "newTag" kustomization.yaml | cut -f2 -d'"')
+      - |
+        push_release () {
+          echo Pushing the Docker image...
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+          URL=$(git remote -v | grep push | cut -f1 -d ' ' | cut -f2)
+          URL_NOPRO=$(echo $URL | sed -e 's/^........//g')
+          REMOTE="https://$GIT_USER:$GIT_PASSWORD@${URL_NOPRO}.git"
+          git remote add codebuild $REMOTE
+          git tag $IMAGE_TAG
+          git push codebuild $IMAGE_TAG 
+          cp kustomization.yaml /root/kustomization.yaml 
+        }
+        if [ -f "/root/kustomization.yaml" ]; then
+          OLD_IMAGE_TAG=$(grep -r "newTag" /root/kustomization.yaml | cut -f2 -d'"')
+          apt-get update && apt-get install -y bc
+          if (( $(echo "$OLD_IMAGE_TAG < $IMAGE_TAG" |bc -l) ));
+            then
+              echo Tag looks to be ok ...
+              push_release    
+          else
+            echo "newTag must be greater than previous tag, so nothing to do"
+          fi 
+        else
+          echo "so it's your first build ? let's go ..."
+          push_release
+        fi
+cache:
+  paths:
+    - '/root/kustomization.yaml'

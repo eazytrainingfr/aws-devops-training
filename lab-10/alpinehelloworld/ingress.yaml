@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: alpinehelloworld 
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/subnets: subnet-0a83535dc3154447c, subnet-0df30d600066b7544 
+
+    # for creating record-set
+    external-dns.alpha.kubernetes.io/hostname: alpinehelloworld.devops.eazytraining.fr 
+spec:
+  rules:
+  - host: alpinehelloworld.devops.eazytraining.fr
+    http:
+      paths:
+      - backend:
+          serviceName: alpinehelloworld-service
+          servicePort: 80
