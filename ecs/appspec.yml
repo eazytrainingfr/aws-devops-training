@@ -1,0 +1,10 @@
+version: 0.0
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: "arn:aws:ecs:us-east-1:780076852474:task-definition/dirane-2120052-task-webapp:1"
+        LoadBalancerInfo:
+          ContainerName: "webapp"
+          ContainerPort: 80
+        PlatformVersion: "LATEST"
