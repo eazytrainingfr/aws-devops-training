@@ -1,0 +1,77 @@
+# get kubernetes credentials to centos (or use ONLY ROOT sudo su -)
+aws cloudformation describe-stacks --region us-east-1 --stack-name EKS --query "Stacks[*].StackStatus" --output text
+mkdir ~/.aws && echo -e "[default] \nregion = us-east-1" > ~/.aws/config
+aws credentials : aws eks --region us-east-1 update-kubeconfig --name EKS
+
+# create deployment folder
+mkdir /root/deployment
+
+# Install python3
+sudo yum install python3-pip
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
+pip3 install git-remote-codecommit
+
+# deploy ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
+
+
+# add ecr role to EKS-Tools-eksDeployRole-...... role
+AmazonEC2ContainerRegistryFullAccess
+
+# create kubernetes pullimage secret
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 467660196096.dkr.ecr.us-east-1.amazonaws.com
+
+kubectl create nemaspace dev
+kubectl create namespace prod
+
+kubectl create secret docker-registry alpinehelloworld-ecr --docker-server=467660196096.dkr.ecr.us-east-1.amazonaws.com --docker-username=AWS --docker-password=$(aws ecr get-login-password --region us-east-1) 
+kubectl create secret docker-registry alpinehelloworld-ecr --docker-server=467660196096.dkr.ecr.us-east-1.amazonaws.com --docker-username=AWS --docker-password=$(aws ecr get-login-password --region us-east-1) -n dev
+kubectl create secret docker-registry alpinehelloworld-ecr --docker-server=467660196096.dkr.ecr.us-east-1.amazonaws.com --docker-username=AWS --docker-password=$(aws ecr get-login-password --region us-east-1) -n prod
+
+#### CI deployment code
+
+# give s3 and codedeploy access on deployment codebuild role 
+AmazonS3FullAccess
+AWSCodeDeployFullAccess
+
+# create S3 for deployment code
+aws s3 mb s3://deployment-code-release-eks --region us-east-1
+aws s3api put-bucket-versioning --bucket deployment-code-release-eks --versioning-configuration Status=Enabled --region us-east-1
+
+# create codebuild
+APPLICATION_NAME=alpinehelloworld
+S3_NAME=deployment-code-release
+
+# push code
+
+
+
+# Add tag to eks-tools
+
+# add codedeploy role to use ec2
+Name	EKS-Tools
+
+# Install codeploy on eks-tools ec2
+
+sudo yum update -y
+sudo yum install -y ruby wget
+wget https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
+chmod +x ./install
+sudo ./install auto
+sudo service codedeploy-agent status
+
+# launch deploiment
+aws deploy create-deployment --application-name alpinehelloworld --s3-location bucket=deployment-code-release,key=alpinehelloworld.zip,bundleType=zip,eTag=62b35c7b213b590295eefa2ce30505f8,version=1kM_iW1wplB0lkeADT04rWyXEaniVpkq --deployment-group-name alpinehelloworld --deployment-config-name CodeDeployDefault.AllAtOnce
+
+
+
+
+
+
+
+
+
+
+
+
