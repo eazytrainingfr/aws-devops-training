@@ -1,0 +1,42 @@
+# Installation de git
+
+sudo yum install git -y
+
+# recupération du code and add kustomize.yaml (https://github.com/eazytrainingfr/kustomize-examples/blob/main/patch-1/kustomization.yaml) file
+git clone https://github.com/diranetafen/alpinehelloworld.git
+
+git remote add aws-alpinehelloworld https://git-codecommit.us-east-1.amazonaws.com/v1/repos/alpinehelloworld
+
+# create secret for $GIT_USER and $GIT_PASSWORD
+https://docs.aws.amazon.com/it_it/codebuild/latest/APIReference/API_EnvironmentVariable.html
+https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html#build-spec.env.secrets-manager
+git_secret
+	git_user
+	git_password
+
+# Create ecr alpinehelloworld : https://console.aws.amazon.com/ecr/home?region=us-east-1
+
+# create s3 named alpinehelloworld-tracking-release
+
+# Create codebuild
+# https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html
+#
+VARIABLE
+
+AWS_DEFAULT_REGION = us-east-1
+
+AWS_ACCOUNT_ID = 467660196096
+
+IMAGE_REPO_NAME = alpinehelloworld
+
+GIT_USER = git_secret:git_user
+
+GIT_PASSWORD = git_secret:git_password
+
+configure s3 cache to point to s3 named alpinehelloworld-tracking-release
+
+# add ecr and secret access to codebuild role
+AmazonEC2ContainerRegistryFullAccess
+SecretsManagerReadWrite
+
+

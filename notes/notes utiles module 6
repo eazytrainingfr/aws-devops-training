@@ -1,0 +1,42 @@
+## AWS Load balancer ##
+
+curl –silent –location “https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz” | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+curl -o iam-policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.1.2/docs/install/iam_policy.json
+
+aws iam create-policy \
+–policy-name AWSLoadBalancerControllerIAMPolicy \
+–policy-document file://iam-policy.json
+
+eksctl create iamserviceaccount \
+–cluster=EKS \
+–namespace=kube-system \
+–name=aws-load-balancer-controller \
+–attach-policy-arn=arn:aws:iam::312601499315:policy/AWSLoadBalancerControllerIAMPolicy \
+–override-existing-serviceaccounts \
+–approve
+
+kubectl apply –validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.2/cert-manager.yaml
+
+wget https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.1.2/docs/install/v2_1_2_full.yaml
+
+# Update file with cluster name
+
+kubectl apply -f v2_1_2_full.yaml
+
+## external DNS ##
+
+eksctl create iamserviceaccount \
+–name external-dns \
+–namespace default \
+–cluster EKS \
+–attach-policy-arn arn:aws:iam::312601499315:policy/external-dns-policy \
+–approve \
+–override-existing-serviceaccounts
+
+wget https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.0.0/docs/examples/external-dns.yaml
+
+https://github.com/kubernetes-sigs/external-dns/pull/1185#issuecomment-530439786
+
+kubectl apply -f external-dns.yaml

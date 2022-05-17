@@ -1,0 +1,32 @@
+pipeline - alpinehelloworld
+-> Add source stage : alpinehelloworld
+
+-> build stage : alpinehelloworld
+		AWS_DEFAULT_REGION = us-east-1
+
+		AWS_ACCOUNT_ID = 467660196096
+
+		IMAGE_REPO_NAME = alpinehelloworld
+
+		GIT_USER = git_secret:git_user
+
+		GIT_PASSWORD = git_secret:git_password
+
+-> Skip deployment stage (create pipeline)
+
+EDIT pipeline to add another source
+
+-> get deployment code - 
+	stage name : DeploymentCode
+ 	action name : deployment-code
+	Variable namespace : DeploymentVariables
+	Output artifacts : DeploymentArtefact
+
+-> deploy - codedeploy : 
+	Deploy action provider
+		AWS CodeDeploy
+	ApplicationName
+		alpinehelloworld
+	DeploymentGroupName
+		alpinehelloworld
+	Input artifacts : DeploymentArtefact
