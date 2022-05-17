@@ -1,0 +1,121 @@
+1- DNS https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
+	
+	a- deploy ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
+	b- create domain 
+	
+	c- create dns zone
+		note ZONE ID Z06939743CZCELWYCROPT
+	d- create subdomain on parent domain https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingNewSubdomain.html	
+
+	e- create policy AllowExternalDNSUpdates
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ChangeResourceRecordSets"
+      ],
+      "Resource": [
+        "arn:aws:route53:::hostedzone/Z06939743CZCELWYCROPT"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListHostedZones",
+        "route53:ListResourceRecordSets"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+
+	d- create role to attache policy
+	https://docs.aws.amazon.com/eks/latest/userguide/create-service-account-iam-policy-and-role.html
+	
+
+	d- Deploy external-dns
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+  # If you're using Amazon EKS with IAM Roles for Service Accounts, specify the following annotation.
+  # Otherwise, you may safely omit it.
+  annotations:
+    # Substitute your account ID and IAM service role name below.
+    eks.amazonaws.com/role-arn: arn:aws:iam::467660196096:role/AllowExternalDNSUpdates
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: external-dns
+rules:
+- apiGroups: [""]
+  resources: ["services","endpoints","pods"]
+  verbs: ["get","watch","list"]
+- apiGroups: ["extensions","networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get","watch","list"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+      annotations:
+        iam.amazonaws.com/role: arn:aws:iam::467660196096:role/AllowExternalDNSUpdates
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: k8s.gcr.io/external-dns/external-dns:v0.7.6
+        args:
+        - --source=service
+        - --source=ingress
+        - --domain-filter=eks.eazytraining.fr # will make ExternalDNS see only the hosted zones matching provided domain, omit to process all available hosted zones
+        - --provider=aws
+        - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+        - --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
+        - --registry=txt
+        - --txt-owner-id=my-hostedzone-identifier   
+      securityContext:
+        fsGroup: 65534 # For ExternalDNS to be able to read Kubernetes and AWS token files
+
+
+
+2- Certificat
+
+https://kubernetes-sigs.github.io/aws-load-balancer-controller/guide/ingress/annotations/#certificate-arn
+	- create certificat pour wildcard *.eks.eazytraining.fr
+		use the option create record in route 53
+
