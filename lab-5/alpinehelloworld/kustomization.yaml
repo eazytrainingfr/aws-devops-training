@@ -5,5 +5,5 @@ resources:
 - service.yaml
 namespace: default
 images:
-  - name: 312601499315.dkr.ecr.us-east-1.amazonaws.com/alpinehelloworld 
+  - name: 312601499315.dkr.ecr.us-east-1.amazonaws.com/alpinehelloworld
     newTag: "1.0"
