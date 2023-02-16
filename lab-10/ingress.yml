@@ -1,3 +1,4 @@
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: alpinehelloworld
@@ -9,6 +10,11 @@ metadata:
     # for creating record-set
     external-dns.alpha.kubernetes.io/hostname: alpinehelloworld.<YOUR DNS DOMAIN>
 spec:
+  defaultBackend:
+    service:
+      name: alpinehelloworld-service
+      port:
+        number: 80
   rules:
   - host: alpinehelloworld.<YOUR DNS DOMAIN>
     http:
@@ -19,4 +25,4 @@ spec:
           service:
             name: alpinehelloworld-service
             port:
-              number: 80
+              number: 80              
