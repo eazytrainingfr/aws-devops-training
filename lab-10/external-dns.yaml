@@ -1,26 +1,23 @@
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: external-dns
+  labels:
+    app.kubernetes.io/name: external-dns
 rules:
 - apiGroups: [""]
-  resources: ["services"]
+  resources: ["services", "endpoints", "pods", "nodes"]
   verbs: ["get","watch","list"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get","watch","list"]
-- apiGroups: ["extensions"]
+- apiGroups: ["extensions", "networking.k8s.io"]
   resources: ["ingresses"]
   verbs: ["get","watch","list"]
-- apiGroups: [""]
-  resources: ["nodes"]
-  verbs: ["list"]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: external-dns-viewer
+  labels:
+    app.kubernetes.io/name: external-dns
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -34,29 +31,35 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: external-dns
+  labels:
+    app.kubernetes.io/name: external-dns
 spec:
   selector:
     matchLabels:
-      app: external-dns
+      app.kubernetes.io/name: external-dns
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: external-dns
+        app.kubernetes.io/name: external-dns
     spec:
       serviceAccountName: external-dns
+      securityContext:
+        fsGroup: 65534
       containers:
       - name: external-dns
-        image: bitnami/external-dns:0.7.1
+        image: bitnami/external-dns:0.13.1
+        # must specify env AWS_REGION in AWS china regions
+        # env:
+        # - name: AWS_REGION
+        #   value: cn-north-1
         args:
         - --source=service
         - --source=ingress
-        - --domain-filter=devops.eazytraining.fr # will make ExternalDNS see only the hosted zones matching provided domain, omit to process all available hosted zones
+        - --domain-filter=<YOUR DNS ZONE> # will make ExternalDNS see only the hosted zones matching provided domain, omit to process all available hosted zones
         - --provider=aws
         - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
         - --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
         - --registry=txt
         - --txt-owner-id=my-identifier
-      securityContext:
-        fsGroup: 65534

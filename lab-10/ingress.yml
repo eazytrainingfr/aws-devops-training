@@ -1,0 +1,22 @@
+kind: Ingress
+metadata:
+  name: alpinehelloworld
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/subnets: < YOUR SUBNET 01 >, < YOUR SUBNET 02 >
+
+    # for creating record-set
+    external-dns.alpha.kubernetes.io/hostname: alpinehelloworld.<YOUR DNS DOMAIN>
+spec:
+  rules:
+  - host: alpinehelloworld.<YOUR DNS DOMAIN>
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: alpinehelloworld-service
+            port:
+              number: 80
